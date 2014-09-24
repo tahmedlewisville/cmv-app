@@ -108,6 +108,27 @@ define([
 		},
 
 		createWidget: function (widgetConfig, options, WidgetClass) {
+
+			// set the options for the widget
+			this.setWidgetOptions(widgetConfig, options);
+
+			// create the widget
+			var pnl = options.parentWidget;
+			if ((widgetConfig.type === 'titlePane' || widgetConfig.type === 'contentPane' || widgetConfig.type === 'floating')) {
+				this[widgetConfig.id] = new WidgetClass(options, put('div')).placeAt(pnl.containerNode);
+			} else if (widgetConfig.type === 'domNode') {
+				this[widgetConfig.id] = new WidgetClass(options, widgetConfig.srcNodeRef);
+			} else {
+				this[widgetConfig.id] = new WidgetClass(options);
+			}
+
+			// start up the widget
+			if (this[widgetConfig.id] && this[widgetConfig.id].startup && !this[widgetConfig.id]._started) {
+				this[widgetConfig.id].startup();
+			}
+		},
+
+		setWidgetOptions: function (widgetConfig, options) {
 			// set any additional options
 			options.id = widgetConfig.id + '_widget';
 			options.parentWidget = widgetConfig.parentWidget;
@@ -117,13 +138,7 @@ define([
 				options.map = this.map;
 			}
 			if (options.mapRightClickMenu) {
-				if (!this.mapRightClickMenu) {
-					this.mapRightClickMenu = new Menu({
-						targetNodeIds: [this.map.root],
-						selector: '.layersDiv' // restrict to map only
-					});
-					this.mapRightClickMenu.startup();
-				}
+				this.createRightClickMenu();
 				options.mapRightClickMenu = this.mapRightClickMenu;
 			}
 			if (options.mapClickMode) {
@@ -140,20 +155,15 @@ define([
 			} else if (options.identifyLayerInfos) {
 				options.layerInfos = this.identifyLayerInfos;
 			}
+		},
 
-			// create the widget
-			var pnl = options.parentWidget;
-			if ((widgetConfig.type === 'titlePane' || widgetConfig.type === 'contentPane' || widgetConfig.type === 'floating')) {
-                this[widgetConfig.id] = new WidgetClass(options, put('div')).placeAt(pnl.containerNode);
-            } else if (widgetConfig.type === 'domNode') {
-                this[widgetConfig.id] = new WidgetClass(options, widgetConfig.srcNodeRef);
-            } else {
-                this[widgetConfig.id] = new WidgetClass(options);
-            }
-
-			// start up the widget
-			if (this[widgetConfig.id] && this[widgetConfig.id].startup && !this[widgetConfig.id]._started) {
-				this[widgetConfig.id].startup();
+		createRightClickMenu: function () {
+			if (!this.mapRightClickMenu) {
+				this.mapRightClickMenu = new Menu({
+					targetNodeIds: [this.map.root],
+					selector: '.layersDiv' // restrict to map only
+				});
+				this.mapRightClickMenu.startup();
 			}
 		},
 
