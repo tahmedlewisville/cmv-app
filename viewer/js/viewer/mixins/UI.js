@@ -138,9 +138,9 @@ define([
 				if (panes.hasOwnProperty(key) && panes[key].collapsible) {
 					var btnDom = [
 						'div.sidebarCollapseButton.sidebar',
-						 key,
-						 'CollapseButton.sidebarCollapseButton',
-						 (key === 'bottom' || key === 'top') ? 'Vert' : 'Horz',
+						key,
+						'CollapseButton.sidebarCollapseButton',
+						(key === 'bottom' || key === 'top') ? 'Vert' : 'Horz',
 						' div.dijitIcon.button.close'
 					].join('');
 					this.collapseButtons[key] = put(this.panes[this.collapseButtonsPane].domNode, btnDom).parentNode;
@@ -153,15 +153,15 @@ define([
 						this.togglePane(key, panes[key].open);
 					}
 
-                    // extra management required when the buttons
+					// extra management required when the buttons
 					// are not in the center map pane
 					if (this.collapseButtonsPane === 'outer') {
-                        var splitter = this.panes[key]._splitterWidget;
-                        if (splitter) {
-                            aspect.after(splitter, '_startDrag', lang.hitch(this, 'splitterStartDrag', key));
-                            aspect.after(splitter, '_stopDrag', lang.hitch(this, 'splitterStopDrag', key));
-                        }
-                    }
+						var splitter = this.panes[key]._splitterWidget;
+						if (splitter) {
+							aspect.after(splitter, '_startDrag', lang.hitch(this, 'splitterStartDrag', key));
+							aspect.after(splitter, '_stopDrag', lang.hitch(this, 'splitterStopDrag', key));
+						}
+					}
 				}
 			}
 		},
