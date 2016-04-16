@@ -11,6 +11,7 @@ define([
     'dijit/form/Button',
     'esri/tasks/ProjectParameters',
     'esri/config',
+    'require',
     'xstyle/css!./LayerControl/css/LayerControl.css'
 ], function (
     declare,
@@ -24,22 +25,33 @@ define([
     ContentPane,
     Button,
     ProjectParameters,
-    esriConfig
+    esriConfig,
+    require
 ) {
-    return declare([WidgetBase, Container], {
+    var LayerControl = declare([WidgetBase, Container], {
         map: null,
         layerInfos: [],
+        icons: {
+            expand: 'fa-plus-square-o',
+            collapse: 'fa-minus-square-o',
+            checked: 'fa-check-square-o',
+            unchecked: 'fa-square-o',
+            update: 'fa-refresh',
+            menu: 'fa-bars',
+            folder: 'fa-folder-o',
+            folderOpen: 'fa-folder-open-o'
+        },
         separated: false,
         overlayReorder: false,
         overlayLabel: false,
         vectorReorder: false,
         vectorLabel: false,
+        noMenu: null,
         noLegend: null,
         noZoom: null,
         noTransparency: null,
+        subLayerMenu: {},
         swipe: null,
-        fontAwesome: true,
-        fontAwesomeUrl: '//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css', // 4.2.0 looks funny @ 16px?
         swiperButtonStyle: 'position:absolute;top:20px;left:120px;z-index:50;',
         // ^args
         baseClass: 'layerControlDijit',
@@ -48,10 +60,18 @@ define([
         _swiper: null,
         _swipeLayerToggleHandle: null,
         _controls: {
-            dynamic: 'gis/dijit/LayerControl/controls/Dynamic',
-            feature: 'gis/dijit/LayerControl/controls/Feature',
-            image: 'gis/dijit/LayerControl/controls/Image',
-            tiled: 'gis/dijit/LayerControl/controls/Tiled'
+            dynamic: './LayerControl/controls/Dynamic',
+            feature: './LayerControl/controls/Feature',
+            image: './LayerControl/controls/Image',
+            tiled: './LayerControl/controls/Tiled',
+            csv: './LayerControl/controls/CSV',
+            georss: './LayerControl/controls/GeoRSS',
+            wms: './LayerControl/controls/WMS',
+            kml: './LayerControl/controls/KML',
+            webtiled: './LayerControl/controls/WebTiled',
+            imagevector: './LayerControl/controls/ImageVector',
+            raster: './LayerControl/controls/Raster',
+            stream: './LayerControl/controls/Stream'
         },
         constructor: function (options) {
             options = options || {};
@@ -97,10 +117,6 @@ define([
             }
             // load only the modules we need
             var modules = [];
-            // load font awesome
-            if (this.fontAwesome) {
-                modules.push('xstyle/css!' + this.fontAwesomeUrl);
-            }
             // push layer control mods
             array.forEach(this.layerInfos, function (layerInfo) {
                 // check if control is excluded
@@ -138,7 +154,7 @@ define([
         _addControl: function (layerInfo, LayerControl) {
             var layerControl = new LayerControl({
                 controller: this,
-                layer: layerInfo.layer,
+                layer: (typeof layerInfo.layer === 'string') ? this.map.getLayer(layerInfo.layer) : layerInfo.layer, // check if we have a layer or just a layer id
                 layerTitle: layerInfo.title,
                 controlOptions: lang.mixin({
                     noLegend: null,
@@ -146,7 +162,8 @@ define([
                     noTransparency: null,
                     swipe: null,
                     expanded: false,
-                    sublayers: true
+                    sublayers: true,
+                    menu: this.subLayerMenu[layerInfo.type]
                 }, layerInfo.controlOptions)
             });
             layerControl.startup();
@@ -237,6 +254,12 @@ define([
         },
         // zoom to layer
         _zoomToLayer: function (layer) {
+            if (layer.declaredClass === 'esri.layers.KMLLayer') {
+                return;
+            }
+
+            // need to "merge" each kml layers fullExtent for project geometries
+
             var map = this.map;
             if (layer.spatialReference === map.spatialReference) {
                 map.setExtent(layer.fullExtent, true);
@@ -302,6 +325,38 @@ define([
                 this._swipeLayerToggleHandle.remove();
             }
             domAttr.set(this._swiper.disableBtn.domNode, 'style', 'display:none;');
+        },
+        // turn all layers on/off
+        //   no arguments
+        //   b/c controls are self aware of layer visibility change simply show/hide layers
+        showAllLayers: function () {
+            if (this.separated) {
+                array.forEach(this._vectorContainer.getChildren(), function (child) {
+                    child.layer.show();
+                });
+                array.forEach(this._overlayContainer.getChildren(), function (child) {
+                    child.layer.show();
+                });
+            } else {
+                array.forEach(this.getChildren(), function (child) {
+                    child.layer.show();
+                });
+            }
+        },
+        hideAllLayers: function () {
+            if (this.separated) {
+                array.forEach(this._vectorContainer.getChildren(), function (child) {
+                    child.layer.hide();
+                });
+                array.forEach(this._overlayContainer.getChildren(), function (child) {
+                    child.layer.hide();
+                });
+            } else {
+                array.forEach(this.getChildren(), function (child) {
+                    child.layer.hide();
+                });
+            }
         }
     });
+    return LayerControl;
 });

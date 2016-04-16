@@ -25,7 +25,6 @@ define([
 		legendLayerInfos: [],
 		editorLayerInfos: [],
 		identifyLayerInfos: [],
-		tocLayerInfos: [],
 		layerControlLayerInfos: [],
 		panes: {
 			left: {
@@ -102,13 +101,13 @@ define([
 			if (titles.header) {
 				var headerTitleNode = dom.byId('headerTitleSpan');
 				if (headerTitleNode) {
-					headerTitleNode.innerText = titles.header;
+					headerTitleNode.innerHTML = titles.header;
 				}
 			}
 			if (titles.subHeader) {
 				var subHeaderTitle = dom.byId('subHeaderTitleSpan');
 				if (subHeaderTitle) {
-					subHeaderTitle.innerText = titles.subHeader;
+					subHeaderTitle.innerHTML = titles.subHeader;
 				}
 			}
 			if (titles.pageTitle) {
@@ -227,15 +226,20 @@ define([
 			this.layers = [];
 			var layerTypes = {
 				csv: 'CSV',
+				dataadapter: 'DataAdapterFeature', //untested
 				dynamic: 'ArcGISDynamicMapService',
 				feature: 'Feature',
 				georss: 'GeoRSS',
 				image: 'ArcGISImageService',
+				imagevector: 'ArcGISImageServiceVector',
 				kml: 'KML',
 				label: 'Label', //untested
 				mapimage: 'MapImage', //untested
 				osm: 'OpenStreetMap',
+				raster: 'Raster',
+				stream: 'Stream',
 				tiled: 'ArcGISTiledMapService',
+				webtiled: 'WebTiled',
 				wms: 'WMS',
 				wmts: 'WMTS' //untested
 			};
@@ -266,19 +270,21 @@ define([
 			var l = new Layer(layer.url, layer.options);
 			this.layers.unshift(l); //unshift instead of push to keep layer ordering on map intact
 			//Legend LayerInfos array
-			this.legendLayerInfos.unshift({ //unshift instead of push to keep layer ordering in legend intact
-				layer: l,
-				title: layer.title || null
-			});
-			//TOC LayerInfos array
-			this.tocLayerInfos.push({ //push because TOC needs the layers in the opposite order
-				layer: l,
-				title: layer.title || null,
-				slider: (layer.slider === false) ? false : true,
-				noLegend: layer.noLegend || false,
-				collapsed: layer.collapsed || false,
-				sublayerToggle: layer.sublayerToggle || false
-			});
+			var excludeLayerFromLegend = false;
+            if ( typeof layer.legendLayerInfos !== 'undefined' && typeof layer.legendLayerInfos.exclude !== 'undefined' ) {
+                excludeLayerFromLegend = layer.legendLayerInfos.exclude;
+            }
+			if ( !excludeLayerFromLegend ) {
+                var configuredLayerInfo = {};
+                if ( typeof layer.legendLayerInfos !== 'undefined' && typeof layer.legendLayerInfos.layerInfo !== 'undefined' ) {
+                    configuredLayerInfo = layer.legendLayerInfos.layerInfo;
+                }
+                var layerInfo = lang.mixin( {
+                    layer: l,
+                    title: layer.title || null
+                }, configuredLayerInfo );
+				this.legendLayerInfos.unshift ( layerInfo ); //unshift instead of push to keep layer ordering in legend intact
+			}
 			//LayerControl LayerInfos array
 			this.layerControlLayerInfos.unshift({ //unshift instead of push to keep layer ordering in LayerControl intact
 				layer: l,
@@ -293,7 +299,9 @@ define([
 				if (layer.editorLayerInfos) {
 					lang.mixin(options, layer.editorLayerInfos);
 				}
-				this.editorLayerInfos.push(options);
+				if (options.exclude !== true) {
+					this.editorLayerInfos.push(options);
+				}
 			}
 			if (layer.type === 'dynamic' || layer.type === 'feature') {
 				var idOptions = {
@@ -520,9 +528,6 @@ define([
 			}
 			if (options.legendLayerInfos) {
 				options.layerInfos = this.legendLayerInfos;
-			}
-			if (options.tocLayerInfos) {
-				options.layerInfos = this.tocLayerInfos;
 			}
 			if (options.layerControlLayerInfos) {
 				options.layerInfos = this.layerControlLayerInfos;
