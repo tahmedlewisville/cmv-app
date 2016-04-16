@@ -1,3 +1,4 @@
+/*eslint camelcase: 0*/
 define([
     'dojo/_base/array',
     'dojo/_base/lang',
@@ -12,7 +13,8 @@ define([
     'esri/request',
     // temp
     'esri/dijit/Legend',
-    'dojo/i18n!esri/nls/jsapi'
+    'dojo/i18n!esri/nls/jsapi',
+    'dojo/i18n!./../nls/resource'
 ], function (
     array,
     lang,
@@ -26,10 +28,12 @@ define([
     gfx,
     esriRequest,
     Legend,
-    esriBundle
+    esriBundle,
+    i18n
 ) {
-    'use strict';
-    esriBundle.widgets.legend.NLS_noLegend = 'No Legend';
+
+    esriBundle.widgets.legend.NLS_noLegend = i18n.noLegend;
+
     return {
         /////////////////////
         // utility methods //
@@ -50,23 +54,30 @@ define([
                     return false;
                 }
             }
+            return false;
         },
-
         // request legend json
         _legendRequest: function (layer, expandNode, callback, errback) {
+            var content = {
+                    f: 'json',
+                    token: (typeof layer._getToken === 'function') ? layer._getToken() : null
+                },
+                options = {disableIdentityLookup: false,
+                    usePost: false,
+                    useProxy: false};
+            if (layer.layerDrawingOptions && layer.layerDrawingOptions.length > 0) {
+                content.dynamicLayers = this._createDynamicLayerParameter(layer);
+                options.usePost = true;
+            }
             esriRequest({
                 url: layer.url + '/legend',
                 callbackParamName: 'callback',
-                content: {
-                    f: 'json',
-                    token: (typeof layer._getToken === 'function') ? layer._getToken() : null
-                }
-            }).then(
+                content: content
+            }, options).then(
                 lang.hitch(this, callback, layer, expandNode),
                 lang.hitch(this, errback, layer, expandNode)
             );
         },
-
         // request arcgis.com legend json
         _arcgisLegendRequest: function (layer, expandNode, callback, errback) {
             var index = layer.url.toLowerCase().indexOf('/rest/');
@@ -86,7 +97,6 @@ define([
                 lang.hitch(this, errback, layer, expandNode)
             );
         },
-
         // create a legend image from json
         _image: function (legend, layerId, layer) {
             var src = legend.url;
@@ -111,7 +121,6 @@ define([
             });
             return img;
         },
-
         ////////////////////////////////////////
         // layer legend for dynamic and tiled //
         ////////////////////////////////////////
@@ -128,7 +137,6 @@ define([
             setTimeout(function () {
                 legend.startup();
             }, 1);
-
             // check version and handle accordingly
             //if (layer.version >= 10.01) {
             //    this._legendRequest(layer, expandNode, '_createLayerLegend', '_layerLegendError');
@@ -136,7 +144,6 @@ define([
             //    this._arcgisLegendRequest(layer, expandNode, '_createLayerLegend', '_layerLegendError');
             //}
         },
-
         /////////////////////////////
         // dynamic sublayer legend //
         /////////////////////////////
@@ -159,15 +166,6 @@ define([
                 // create legend table
                 var table = domConst.create('table');
                 domClass.add(table, 'layerControlLegendTable');
-                // label if legend group
-                if (_layer.legend.length > 1 && layer.layerInfos.length > 1) {
-                    var labelRow = domConst.create('tr', {}, table, 'last');
-                    domConst.create('td', {
-                        innerHTML: _layer.layerName,
-                        'class': 'layerControlLegendGroup',
-                        colspan: 2
-                    }, labelRow, 'first');
-                }
                 // iterate through legends
                 array.forEach(_layer.legend, function (legend) {
                     // create a table row and symbol td
@@ -183,14 +181,18 @@ define([
 
                     domConst.place(this._image(legend, layerId, layer), symbol);
                 }, this);
-                // place legend in the appropriate sublayer expandNode
-                // or if a single layer use control expandNode
-                if (layer.layerInfos.length > 1) {
-                    var sublayerExpandNode = registry.byId(layer.id + '-' + _layer.layerId + '-sublayer-control').expandNode;
-                    html.set(sublayerExpandNode, ''); //clear "No Legend" placeholder
-                    domConst.place(table, sublayerExpandNode);
-                } else {
-                    domConst.place(table, expandNode);
+                if (layer.layerInfos.reduce(function (prior, curr) {
+                    return (curr.id === _layer.layerId) || prior;
+                }, false)) {
+                    // place legend in the appropriate sublayer expandNode
+                    // or if a single layer use control expandNode
+                    if (layer.layerInfos.length > 1) {
+                        var sublayerExpandNode = registry.byId(layer.id + '-' + _layer.layerId + '-sublayer-control').expandNode;
+                        html.set(sublayerExpandNode, ''); //clear "No Legend" placeholder
+                        domConst.place(table, sublayerExpandNode);
+                    } else {
+                        domConst.place(table, expandNode);
+                    }
                 }
             }, this);
         },
@@ -204,7 +206,6 @@ define([
                 error: e
             });
         },
-
         /////////////////////////
         // vector layer legend //
         /////////////////////////
@@ -312,6 +313,31 @@ define([
                 // place legend in expandNode
                 domConst.place(table, expandNode);
             }, this);
+        },
+        _createDynamicLayerParameter: function (layer) {
+            if (layer.dynamicLayerInfos && layer.dynamicLayerInfos.length > 0 || layer.layerDrawingOptions && layer.layerDrawingOptions.length > 0) {
+                layer.dynamicLayerInfos = layer.createDynamicLayerInfosFromLayerInfos();
+                var dlis = layer.dynamicLayerInfos,
+                    param = [];
+                dlis.forEach(function (dli) {
+                    if (!dli.subLayerIds) {
+                        var e, i = dli.id;
+                        e = {
+                            id: i,
+                            name: dli.name
+                        };
+                        if (dli.source) {
+                            e.source = dli.source.toJson();
+                        }
+                        if (layer.layerDrawingOptions && layer.layerDrawingOptions[i]) {
+                            e.drawingInfo = layer.layerDrawingOptions[i].toJson();
+                        }
+                        param.push(e);
+                    }
+                }, this);
+                return JSON.stringify(param);
+            }
+            return null;
         }
     };
 });

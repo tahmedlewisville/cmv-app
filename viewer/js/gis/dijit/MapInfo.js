@@ -10,7 +10,7 @@ define([
     'dojo/dom-style',
     'dojo/number',
     'dojo/topic',
-    '//cdnjs.cloudflare.com/ajax/libs/proj4js/2.2.2/proj4.js',
+    '//cdnjs.cloudflare.com/ajax/libs/proj4js/2.3.12/proj4.js',
     'xstyle/css!./MapInfo/css/MapInfo.css'
 ], function (
     declare,
@@ -23,7 +23,7 @@ define([
     topic,
     proj4
 ) {
-    'use strict';
+
     return declare([WidgetBase, TemplatedMixin], {
         map: null,
         mode: 'map',
@@ -169,6 +169,8 @@ define([
                     this._project(pnt);
                 }
                 break;
+            default:
+                break;
             }
         },
         _project: function (pnt) {
@@ -182,7 +184,11 @@ define([
             }
         },
         _setScale: function () {
-            html.set(this.scaleNode, String(number.format(number.round(this.map.getScale(), 0))));
+            var scale = this.map.getScale();
+            if (scale === null || isNaN(scale)) {
+                return;
+            }
+            html.set(this.scaleNode, String(number.format(number.round(scale, 0))));
         },
         _setZoom: function () {
             html.set(this.zoomNode, String(this.map.getLevel()));

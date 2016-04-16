@@ -17,16 +17,19 @@ define([
     'esri/layers/FeatureLayer',
     'dojo/topic',
     'dojo/aspect',
+    'dojo/i18n!./Draw/nls/resource',
+
     'dijit/form/Button',
-    'xstyle/css!./Draw/css/Draw.css'
-], function (declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, lang, Color, Draw, GraphicsLayer, Graphic, SimpleRenderer, drawTemplate, UniqueValueRenderer, SimpleMarkerSymbol, SimpleLineSymbol, SimpleFillSymbol, FeatureLayer, topic, aspect) {
+    'xstyle/css!./Draw/css/Draw.css',
+    'xstyle/css!./Draw/css/adw-icons.css'
+], function (declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, lang, Color, Draw, GraphicsLayer, Graphic, SimpleRenderer, drawTemplate, UniqueValueRenderer, SimpleMarkerSymbol, SimpleLineSymbol, SimpleFillSymbol, FeatureLayer, topic, aspect, i18n) {
 
     // main draw dijit
     return declare([_WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin], {
         widgetsInTemplate: true,
         templateString: drawTemplate,
+        i18n: i18n,
         drawToolbar: null,
-        graphics: null,
         mapClickMode: null,
         postCreate: function () {
             this.inherited(arguments);
@@ -46,7 +49,6 @@ define([
             this.pointSymbol = new SimpleMarkerSymbol(SimpleMarkerSymbol.STYLE_CIRCLE, 10, new SimpleLineSymbol(SimpleLineSymbol.STYLE_SOLID, new Color([255, 0, 0]), 1), new Color([255, 0, 0, 1.0]));
             this.polylineSymbol = new SimpleLineSymbol(SimpleLineSymbol.STYLE_DASH, new Color([255, 0, 0]), 1);
             this.polygonSymbol = new SimpleFillSymbol(SimpleFillSymbol.STYLE_SOLID, new SimpleLineSymbol(SimpleLineSymbol.STYLE_DASHDOT, new Color([255, 0, 0]), 2), new Color([255, 255, 0, 0.0]));
-
             this.pointGraphics = new GraphicsLayer({
                 id: 'drawGraphics_point',
                 title: 'Draw Graphics'
@@ -56,7 +58,6 @@ define([
             this.pointRenderer.description = 'User drawn points';
             this.pointGraphics.setRenderer(this.pointRenderer);
             this.map.addLayer(this.pointGraphics);
-
             this.polylineGraphics = new GraphicsLayer({
                 id: 'drawGraphics_line',
                 title: 'Draw Graphics'
@@ -92,24 +93,13 @@ define([
                 title: 'Draw Graphics',
                 mode: FeatureLayer.MODE_SNAPSHOT
             });
-            //this.polygonRenderer = new SimpleRenderer(this.polygonSymbol);
             this.polygonRenderer = new UniqueValueRenderer(new SimpleFillSymbol(), 'ren', null, null, ', ');
             this.polygonRenderer.addValue({
                 value: 1,
                 symbol: new SimpleFillSymbol({
-                    color: [
-                        255,
-                        170,
-                        0,
-                        255
-                    ],
+                    color: [255, 170, 0, 255],
                     outline: {
-                        color: [
-                            255,
-                            170,
-                            0,
-                            255
-                        ],
+                        color: [255, 170, 0, 255],
                         width: 1,
                         type: 'esriSLS',
                         style: 'esriSLSSolid'
@@ -120,49 +110,55 @@ define([
                 label: 'User drawn polygons',
                 description: 'User drawn polygons'
             });
-            //this.polygonRenderer.label = 'User drawn polygons';
-            //this.polygonRenderer.description = 'User drawn polygons';
             this.polygonGraphics.setRenderer(this.polygonRenderer);
             this.map.addLayer(this.polygonGraphics);
         },
         drawPoint: function () {
             this.disconnectMapClick();
             this.drawToolbar.activate(Draw.POINT);
+            this.drawModeTextNode.innerText = this.i18n.labels.point;
         },
         drawCircle: function () {
             this.disconnectMapClick();
             this.drawToolbar.activate(Draw.CIRCLE);
+            this.drawModeTextNode.innerText = this.i18n.labels.circle;
         },
         drawLine: function () {
             this.disconnectMapClick();
             this.drawToolbar.activate(Draw.POLYLINE);
+            this.drawModeTextNode.innerText = this.i18n.labels.polyline;
         },
         drawFreehandLine: function () {
             this.disconnectMapClick();
             this.drawToolbar.activate(Draw.FREEHAND_POLYLINE);
+            this.drawModeTextNode.innerText = this.i18n.labels.freehandPolyline;
         },
         drawPolygon: function () {
             this.disconnectMapClick();
             this.drawToolbar.activate(Draw.POLYGON);
+            this.drawModeTextNode.innerText = this.i18n.labels.polygon;
         },
         drawFreehandPolygon: function () {
             this.disconnectMapClick();
             this.drawToolbar.activate(Draw.FREEHAND_POLYGON);
+            this.drawModeTextNode.innerText = this.i18n.labels.freehandPolygon;
         },
         disconnectMapClick: function () {
             topic.publish('mapClickMode/setCurrent', 'draw');
-            // dojo.disconnect(this.mapClickEventHandle);
-            // this.mapClickEventHandle = null;
+            this.enableStopButtons();
+        // dojo.disconnect(this.mapClickEventHandle);
+        // this.mapClickEventHandle = null;
         },
         connectMapClick: function () {
             topic.publish('mapClickMode/setDefault');
-            // if (this.mapClickEventHandle === null) {
-            //     this.mapClickEventHandle = dojo.connect(this.map, 'onClick', this.mapClickEventListener);
-            // }
+            this.disableStopButtons();
+        // if (this.mapClickEventHandle === null) {
+        //     this.mapClickEventHandle = dojo.connect(this.map, 'onClick', this.mapClickEventListener);
+        // }
         },
         onDrawToolbarDrawEnd: function (evt) {
             this.drawToolbar.deactivate();
-            this.connectMapClick();
+            this.drawModeTextNode.innerText = this.i18n.labels.currentDrawModeNone;
             var graphic;
             switch (evt.geometry.type) {
             case 'point':
@@ -181,9 +177,16 @@ define([
                 break;
             default:
             }
+            this.connectMapClick();
         },
         clearGraphics: function () {
             this.endDrawing();
+            this.connectMapClick();
+            this.drawModeTextNode.innerText = 'None';
+        },
+        stopDrawing: function () {
+            this.drawToolbar.deactivate();
+            this.drawModeTextNode.innerText = 'None';
             this.connectMapClick();
         },
         endDrawing: function () {
@@ -191,11 +194,33 @@ define([
             this.polylineGraphics.clear();
             this.polygonGraphics.clear();
             this.drawToolbar.deactivate();
+            this.disableStopButtons();
+        },
+        disableStopButtons: function () {
+            this.stopDrawingButton.set('disabled', true);
+            this.eraseDrawingButton.set('disabled', !this.noGraphics());
+        },
+        enableStopButtons: function () {
+            this.stopDrawingButton.set('disabled', false);
+            this.eraseDrawingButton.set('disabled', !this.noGraphics());
+        },
+        noGraphics: function () {
+
+            if (this.pointGraphics.graphics.length > 0) {
+                return true;
+            } else if (this.polylineGraphics.graphics.length > 0) {
+                return true;
+            } else if (this.polygonGraphics.graphics.length > 0) {
+                return true;
+            } else {
+                return false;
+            }
+
         },
         onLayoutChange: function (open) {
             // end drawing on close of title pane
             if (!open) {
-                this.endDrawing();
+                //this.endDrawing();
                 if (this.mapClickMode === 'draw') {
                     topic.publish('mapClickMode/setDefault');
                 }

@@ -20,7 +20,7 @@ define([
     HorizontalSlider,
     HorizontalRuleLabels
 ) {
-    'use strict';
+
     return declare(PopupMenuItem, {
         layer: null,
         constructor: function (options) {
@@ -28,6 +28,7 @@ define([
             lang.mixin(this, options);
         },
         postCreate: function () {
+            this.inherited(arguments);
             var transparencySlider = new HorizontalSlider({
                 value: this.layer.opacity,
                 minimum: 0,

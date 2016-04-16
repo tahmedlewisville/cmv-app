@@ -1,27 +1,30 @@
-.layerControlDijit .vectorLayerContainer {
-
-}
+.layerControlDijit .vectorLayerContainer {}
 
 .layerControlDijit .vectorLabelContainer {
-    
+    font-size: 15px;
+    font-weight: 600;
+    padding-bottom: 4px;
 }
 
-.layerControlDijit .overlayLayerContainer {
-
-}
+.layerControlDijit .overlayLayerContainer {}
 
 .layerControlDijit .overlayLabelContainer {
+    font-size: 15px;
+    font-weight: 600;
     padding-bottom: 4px;
 }
 
 .layerControlDijit .layerControl {
     padding-bottom: 6px;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 .layerControlDijit .layerControlExpand {
     border-bottom: solid 1px #DDD;
 }
-
 
 .layerControlDijit .layerControlTable {
     width: 100%;
@@ -42,7 +45,8 @@
     line-height: 15px;
 }
 
-.layerControlDijit .layerControlTableCheck {
+.layerControlDijit .layerControlTableCheck,
+.layerControlDijit .layerControlTableMenu {
     cursor: pointer;
     width: 19px;
     height: 16px;
@@ -53,6 +57,7 @@
     font-size: 15px;
     height: 16px;
     line-height: 16px;
+    cursor: default;
 }
 
 .layerControlDijit .layerControlTableUpdate {
@@ -60,6 +65,13 @@
     height: 16px;
     line-height: 16px;
     text-align: center;
+}
+
+.layerControlDijit .layerControlHidden {
+    display: none;
+}
+.layerControlDijit .layerControlVisible {
+    display: block;
 }
 
 .layerControlDijit .layerControlIndent {
@@ -71,13 +83,23 @@
 }
 
 .layerControlDijit .layerControlUpdateIcon {
-    font-size: 12px
+    font-size: 12px;
+}
+
+.layerControlDijit .layerControlMenuIcon {
+    font-size: 15px;
+    color: #666;
+}
+
+.layerControlDijit .layerControlMenuIcon:hover {
+    color: #111;
 }
 
 .layerControlDijit .layerControlCheckIconOutScale {
     color: #BBB;
 }
 
+/* not in use - retain for links */
 .layerControlDijit .layerControlClick {
     cursor: pointer;
     color: #1f78af;
@@ -116,4 +138,15 @@
 
 .layerControlDijit .esriLegendServiceLabel {
     display: none;
+}
+
+.layerControlDijit .menuLink {
+    color: #369;
+    text-decoration: none;
+}
+
+.layerControlDijit .menuLink:hover {
+    color: #5196DB;
+    text-decoration: underline;
+    cursor: pointer;
 }
